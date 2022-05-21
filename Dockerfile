@@ -14,14 +14,20 @@ FROM build-setup AS build-dependencies
 
 # Cache gopath dependencies for faster builds
 # Newer projects should opt for go mod vendor for reliability and security
-WORKDIR /app/src
+RUN mkdir /app
+RUN mkdir /app/src
 COPY src/go.mod /app/src
 COPY src/go.sum /app/src
-RUN go mod download
 
 # FIX: This generates code marked by `go:build relic` and `+build relic`. See `combined_verifier_v3.go`.
+# FIX: This is not needed, if vendor/ is used
+WORKDIR /app/src
+RUN go mod download
 RUN go mod download github.com/onflow/flow-go/crypto@v0.24.3
 RUN cd $GOPATH/pkg/mod/github.com/onflow/flow-go/crypto@v0.24.3 && go generate && go build
+
+# FIX: Devs should review all what they use to limit build time
+RUN cat go.sum
 
 ## (3) Build the app binary
 FROM build-dependencies AS build-env
@@ -29,17 +35,32 @@ FROM build-dependencies AS build-env
 COPY src /app/src
 WORKDIR /app/src
 
-# Fix Devs should review all what they use to limit build time
-RUN cat go.sum
+# Fix: make sure no further steps update modules later, so that we can debug regressions
+RUN go mod vendor
+RUN cp -R $GOPATH/pkg/mod/github.com/onflow/flow-go/crypto@v0.24.3/* /app/src/vendor/github.com/onflow/flow-go/crypto
+RUN ls /app/src/vendor/github.com/onflow/flow-go/crypto/relic
 
 # FIX: Without -tags=relic we get undefined: "github.com/onflow/flow-go/consensus/hotstuff/verification".NewCombinedVerifier
 RUN go build -v -tags=relic -o /app main/api-service.go
+RUN cp /app/api-service /app/application
 
-CMD ["go", "run", "main/api-service.go"]
+CMD /bin/bash
 
 ## (5) Add the statically linked binary to a distroless image
-FROM scratch as production
+FROM build-env as production
 
-COPY --from=build-env /app/api-service /bin/app
+WORKDIR /app/src
+COPY --from=build-env /app/api-service /app/api-service
 
-CMD ["/bin/app"]
+CMD ["go", "run", "-tags=relic", "main/api-service.go",  \
+    "--secretsdir=/data/secrets"]
+#    "--nodeid=a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"]
+
+## (6) Add the statically linked binary to a distroless image
+FROM golang:1.17 as production-small
+
+RUN rm -rf /go
+RUN rm -rf /app
+COPY --from=production /app/api-service /bin/api-service
+
+CMD ["/bin/api-service"]

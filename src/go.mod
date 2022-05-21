@@ -3,8 +3,12 @@ module github.com/onflow/api-service/m/v2
 go 1.18
 
 require (
+	github.com/golang/protobuf v1.5.2
 	github.com/onflow/flow-go v0.26.0
+	github.com/onflow/flow/protobuf/go/flow v0.2.5
+	github.com/rs/zerolog v1.26.1
 	github.com/spf13/pflag v1.0.5
+	google.golang.org/grpc v1.44.0
 )
 
 require (
@@ -58,7 +62,6 @@ require (
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -178,7 +181,6 @@ require (
 	github.com/onflow/flow-ft/lib/go/contracts v0.5.0 // indirect
 	github.com/onflow/flow-go-sdk v0.24.1-0.20220513205729-d1f58d47c4e3 // indirect
 	github.com/onflow/flow-go/crypto v0.24.3 // indirect
-	github.com/onflow/flow/protobuf/go/flow v0.2.5 // indirect
 	github.com/onflow/sdks v0.4.2 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -194,7 +196,6 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/psiemens/sconfig v0.1.0 // indirect
 	github.com/rivo/uniseg v0.2.1-0.20211004051800-57c86be7915a // indirect
-	github.com/rs/zerolog v1.26.1 // indirect
 	github.com/sethvargo/go-retry v0.2.3 // indirect
 	github.com/shirou/gopsutil/v3 v3.22.2 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
@@ -238,7 +239,6 @@ require (
 	google.golang.org/api v0.70.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220222213610-43724f9ea8cf // indirect
-	google.golang.org/grpc v1.44.0 // indirect
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
