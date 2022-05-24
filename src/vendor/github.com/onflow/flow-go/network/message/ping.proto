@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package message;
+
+message PingRequest {
+}
+
+message PingResponse {
+    string version = 1;     // node software version
+    uint64 blockHeight = 2; // latest sealed block height
+    uint64 hotstuffView = 3; // latest hotstuff cur view
+}

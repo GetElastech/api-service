@@ -17,11 +17,15 @@ FROM build-setup AS build-dependencies
 WORKDIR /app/src
 COPY src/go.mod /app/src
 COPY src/go.sum /app/src
-RUN go mod download
+
+COPY src/vendor /app/src/vendor
+RUN cd vendor/github.com/onflow/flow-go/crypto && go generate && go build
 
 # FIX: This generates code marked by `go:build relic` and `+build relic`. See `combined_verifier_v3.go`.
-RUN go mod download github.com/onflow/flow-go/crypto@v0.24.3
-RUN cd $GOPATH/pkg/mod/github.com/onflow/flow-go/crypto@v0.24.3 && go generate && go build
+# FIX: This is not needed, if vendor/ is used
+#RUN go mod download
+#RUN go mod download github.com/onflow/flow-go/crypto@v0.24.3
+#RUN cd $GOPATH/pkg/mod/github.com/onflow/flow-go/crypto@v0.24.3 && go generate && go build
 
 ## (3) Build the app binary
 FROM build-dependencies AS build-env
@@ -30,7 +34,7 @@ COPY src /app/src
 WORKDIR /app/src
 
 # Fix Devs should review all what they use to limit build time
-RUN cat go.sum
+# RUN cat go.sum
 
 # FIX: Without -tags=relic we get undefined: "github.com/onflow/flow-go/consensus/hotstuff/verification".NewCombinedVerifier
 RUN go build -v -tags=relic -o /app main/api-service.go
@@ -38,8 +42,10 @@ RUN go build -v -tags=relic -o /app main/api-service.go
 CMD ["go", "run", "main/api-service.go"]
 
 ## (5) Add the statically linked binary to a distroless image
-FROM scratch as production
+FROM busybox as production
 
-COPY --from=build-env /app/api-service /bin/app
+COPY --from=build-env /app/api-service /app
 
-CMD ["/bin/app"]
+RUN ls -la /app
+
+CMD ["/app"]

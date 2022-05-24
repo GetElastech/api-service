@@ -6,8 +6,9 @@ run: build
 
 # Run build/test/run debug console
 .PHONY: debug
-docker-debug: build-intermediate
-	docker run -t -i --rm onflow.org/api-service-build /bin/bash
+debug:
+	docker build -t onflow.org/api-service-debug --target build-dependencies .
+	docker run -t -i --rm onflow.org/api-service-debug /bin/bash
 
 # Run all tests
 .PHONY: test
