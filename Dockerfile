@@ -38,14 +38,15 @@ WORKDIR /app/src
 
 # FIX: Without -tags=relic we get undefined: "github.com/onflow/flow-go/consensus/hotstuff/verification".NewCombinedVerifier
 RUN go build -v -tags=relic -o /app main/api-service.go
+RUN cp /app/api-service /application
+RUN /application
 
-CMD ["go", "run", "main/api-service.go"]
+CMD ["go", "run", "-tags=relic", "main/api-service.go"]
 
 ## (5) Add the statically linked binary to a distroless image
-FROM busybox as production
+FROM scratch as production
 
-COPY --from=build-env /app/api-service /app
+WORKDIR /
+COPY --from=build-env /application app
 
-RUN ls -la /app
-
-CMD ["/app"]
+CMD ["./app"]

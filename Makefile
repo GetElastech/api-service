@@ -1,8 +1,28 @@
 
+# Build dependencies
+.PHONY: install-tools
+install-tools:
+	pushd vendor/github.com/onflow/flow-go/crypto && go generate && go build; popd
+
 # Run API service
 .PHONY: run
-run: build
-	docker run -t -i --rm onflow.org/api-service
+run:
+	go run -v -tags=relic main/api-service.go
+
+# Build API service
+.PHONY: build
+build:
+	go build -v -tags=relic -o /app main/api-service.go
+
+# Test API service
+.PHONY: test
+test:
+	go test -v -tags=relic ./...
+
+# Run API service in Docker
+.PHONY: docker-run
+docker-run: docker-build
+	docker run -t -i --rm onflow.org/api-service-build go run -v -tags=relic main/api-service.go
 
 # Run build/test/run debug console
 .PHONY: debug
@@ -11,16 +31,16 @@ debug:
 	docker run -t -i --rm onflow.org/api-service-debug /bin/bash
 
 # Run all tests
-.PHONY: test
-test: build-intermediate
+.PHONY: docker-test
+docker-test: docker-build-test
 	docker run -t -i --rm onflow.org/api-service-build go test -v -tags=relic ./...
 
 # Build production Docker container
-.PHONY: build
-build:
+.PHONY: docker-build
+docker-build:
 	docker build -t onflow.org/api-service --target production .
 
 # Build intermediate build docker container
-.PHONY: build-intermediate
-build-intermediate:
+.PHONY: docker-build-test
+docker-build-test:
 	docker build -t onflow.org/api-service-build --target build-env .
