@@ -14,12 +14,15 @@ FROM build-setup AS build-dependencies
 
 # Cache gopath dependencies for faster builds
 # Newer projects should opt for go mod vendor for reliability and security
-WORKDIR /app/src
 COPY src/go.mod /app/src
 COPY src/go.sum /app/src
 
 COPY src/vendor /app/src/vendor
-RUN cd vendor/github.com/onflow/flow-go/crypto && go generate && go build
+WORKDIR vendor/github.com/onflow/flow-go/crypto
+RUN go generate
+RUN go build
+
+WORKDIR /app/src
 
 # FIX: This generates code marked by `go:build relic` and `+build relic`. See `combined_verifier_v3.go`.
 # FIX: This is not needed, if vendor/ is used
@@ -30,7 +33,14 @@ RUN cd vendor/github.com/onflow/flow-go/crypto && go generate && go build
 ## (3) Build the app binary
 FROM build-dependencies AS build-env
 
+COPY --from=build-dependencies /app/src/vendor/github.com/onflow/flow-go/crypto /app/src/vendor/github.com/onflow/flow-go/crypto
+
 COPY src /app/src
+
+WORKDIR /app/src/vendor/github.com/onflow/flow-go/crypto
+RUN go build
+RUN /app/src/vendor/github.com/onflow/flow-go/crypto
+
 WORKDIR /app/src
 
 # Fix Devs should review all what they use to limit build time
