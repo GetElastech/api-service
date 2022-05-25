@@ -39,7 +39,6 @@ WORKDIR /app/src
 # FIX: Without -tags=relic we get undefined: "github.com/onflow/flow-go/consensus/hotstuff/verification".NewCombinedVerifier
 RUN go build -v -tags=relic -o /app main/api-service.go
 RUN cp /app/api-service /application
-RUN /application
 
 CMD ["go", "run", "-tags=relic", "main/api-service.go"]
 
