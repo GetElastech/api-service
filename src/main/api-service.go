@@ -3,7 +3,10 @@ package main
 import (
 	engine2 "github.com/onflow/api-service/m/v2/engine"
 	"github.com/onflow/api-service/m/v2/proxy"
+	"github.com/onflow/flow-go/model/flow"
+	"github.com/onflow/flow/protobuf/go/flow/access"
 	"github.com/spf13/pflag"
+	"os"
 	"time"
 
 	"github.com/onflow/flow-go/cmd"
@@ -11,6 +14,10 @@ import (
 	"github.com/onflow/flow-go/network"
 	"github.com/onflow/flow-go/network/validator"
 )
+
+type FlowServiceBuilder struct {
+	*cmd.FlowNodeBuilder
+}
 
 func main() {
 	var (
@@ -20,8 +27,15 @@ func main() {
 	var apiTimeout time.Duration
 	var upstreamNodeAddresses []string
 	var upstreamNodePublicKeys []string
+	var api access.AccessAPIServer
 
-	nodeBuilder := cmd.FlowNode("api-service")
+	nodeBuilder := &FlowServiceBuilder{}
+	nodeBuilder.FlowNodeBuilder = cmd.FlowNode("api-service")
+	var err error
+	nodeBuilder.FlowNodeBuilder.NodeID, err = flow.HexStringToIdentifier("a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5")
+	if err != nil {
+		os.Exit(2)
+	}
 	nodeBuilder.ExtraFlags(func(flags *pflag.FlagSet) {
 		flags.StringVarP(&rpcConf.ListenAddr, "rpc-addr", "r", "localhost:9000", "the address the GRPC server listens on")
 		flags.DurationVar(&apiTimeout, "flow-api-timeout", 3*time.Second, "tcp timeout for Flow API gRPC socket")
@@ -43,17 +57,19 @@ func main() {
 			node.MsgValidators = validators
 			return nil
 		}).
-		Component("RPC engine", func(node *cmd.NodeConfig) (module.ReadyDoneAware, error) {
+		Module("API Service", func(node *cmd.NodeConfig) error {
 			ids, err := proxy.BootstrapIdentities(upstreamNodeAddresses, upstreamNodePublicKeys)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			api, err := proxy.NewFlowAPIService(ids, apiTimeout)
+			api, err = proxy.NewFlowAPIService(ids, apiTimeout)
 			if err != nil {
-				return nil, err
+				return err
 			}
-
-			rpcEng, err := engine2.New(node.Network, node.Logger, node.Me, node.State, rpcConf, api)
+			return err
+		}).
+		Component("RPC engine", func(node *cmd.NodeConfig) (module.ReadyDoneAware, error) {
+			rpcEng, err := engine2.New(node.Logger, node.Me, rpcConf, api)
 			return rpcEng, err
 		})
 
@@ -62,4 +78,27 @@ func main() {
 		nodeBuilder.Logger.Fatal().Err(err).Send()
 	}
 	node.Run()
+}
+
+func (fnb *FlowServiceBuilder) onStart() error {
+
+	// seed random generator
+	//rand.Seed(time.Now().UnixNano())
+	//
+	//// init nodeinfo by reading the private bootstrap file if not already set
+	//if fnb.NodeID == flow.ZeroID {
+	//	fnb.initNodeInfo()
+	//}
+
+	// run all modules
+	//for _, f := range fnb.*fnb.FlowNodeBuilder.modules {
+	//	if err := fnb.handleModule(f); err != nil {
+	//		return err
+	//	}
+	//}
+	//
+	//// run all components
+	//return fnb.handleComponents()
+
+	return nil
 }
