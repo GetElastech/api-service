@@ -45,3 +45,8 @@ docker-build:
 .PHONY: docker-build-test
 docker-build-test:
 	docker build -t onflow.org/api-service --target build-env .
+
+# Clean all
+.PHONY: docker-clean
+docker-clean:
+	docker system prune -a
