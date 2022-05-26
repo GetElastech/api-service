@@ -41,8 +41,8 @@ RUN cp -R $GOPATH/pkg/mod/github.com/onflow/flow-go/crypto@v0.24.3/* /app/src/ve
 RUN ls /app/src/vendor/github.com/onflow/flow-go/crypto/relic
 
 # FIX: Without -tags=relic we get undefined: "github.com/onflow/flow-go/consensus/hotstuff/verification".NewCombinedVerifier
-RUN go build -v -tags=relic -o /app main/api-service.go
-RUN cp /app/api-service /app/application
+RUN go build -v -tags=relic -o /app main/api_service.go
+RUN cp /app/api_service /app/application
 
 CMD /bin/bash
 
@@ -50,19 +50,15 @@ CMD /bin/bash
 FROM build-env as production
 
 WORKDIR /app/src
-COPY --from=build-env /app/api-service /app/api-service
+COPY --from=build-env /app/api_service /app/api_service
 
-#RUN touch bootstrap/private-root-information/private-node-info_a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5/node-info.priv.json
-
-CMD ["go", "run", "-tags=relic", "main/api-service.go",  \
-    "--secretsdir=/data/secrets"]
-#    "--nodeid=a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5"]
+CMD ["go", "run", "-tags=relic", "main/api_service.go"]
 
 ## (6) Add the statically linked binary to a distroless image
 FROM golang:1.17 as production-small
 
 RUN rm -rf /go
 RUN rm -rf /app
-COPY --from=production /app/api-service /bin/api-service
+COPY --from=production /app/api_service /bin/api_service
 
-CMD ["/bin/api-service"]
+CMD ["/bin/api_service"]
