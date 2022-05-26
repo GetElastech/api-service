@@ -48,3 +48,13 @@ FROM build-env as production
 WORKDIR /app/src
 
 CMD ["go", "run", "-tags=relic", "main/api-service.go"]
+
+## (5) Add the statically linked binary to a distroless image
+FROM busybox as production-small
+
+RUN mkdir -p /bin
+# Run issues probably due to 1.17
+COPY --from=production /app/api-service /bin/api-service
+WORKDIR /bin
+
+CMD ["/bin/api-service"]
