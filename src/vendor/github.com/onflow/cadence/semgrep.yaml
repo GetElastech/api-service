@@ -1,9 +1,0 @@
-rules:
-- id: host-function-value-without-type
-  languages:
-    - go
-  message: Host function values must have a static type
-  pattern-either:
-    - pattern: NewHostFunctionValue(..., nil)
-    - pattern: interpreter.NewHostFunctionValue(..., nil)
-  severity: ERROR

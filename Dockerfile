@@ -14,15 +14,20 @@ FROM build-setup AS build-dependencies
 
 # Cache gopath dependencies for faster builds
 # Newer projects should opt for go mod vendor for reliability and security
-WORKDIR /app/src
+RUN mkdir /app
+RUN mkdir /app/src
 COPY src/go.mod /app/src
 COPY src/go.sum /app/src
 
-COPY src/vendor /app/src/vendor
-RUN cd vendor/github.com/onflow/flow-go/crypto && go generate && go build
+#COPY src/vendor /app/src/vendor
+#WORKDIR /app/src/vendor/github.com/onflow/flow-go/crypto
+#RUN go generate
+#RUN go build
+#WORKDIR /app/src
 
 # FIX: This generates code marked by `go:build relic` and `+build relic`. See `combined_verifier_v3.go`.
 # FIX: This is not needed, if vendor/ is used
+WORKDIR /app/src
 #RUN go mod download
 #RUN go mod download github.com/onflow/flow-go/crypto@v0.24.3
 #RUN cd $GOPATH/pkg/mod/github.com/onflow/flow-go/crypto@v0.24.3 && go generate && go build
@@ -35,6 +40,10 @@ WORKDIR /app/src
 
 # Fix Devs should review all what they use to limit build time
 # RUN cat go.sum
+
+RUN go mod download
+RUN go mod download github.com/onflow/flow-go/crypto@v0.24.3
+RUN cd $GOPATH/pkg/mod/github.com/onflow/flow-go/crypto@v0.24.3 && go generate && go build
 
 # FIX: Without -tags=relic we get undefined: "github.com/onflow/flow-go/consensus/hotstuff/verification".NewCombinedVerifier
 RUN go build -v -tags=relic -o /app main/api-service.go
