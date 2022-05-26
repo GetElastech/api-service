@@ -7,12 +7,12 @@ install-tools:
 # Run API service
 .PHONY: run
 run:
-	go run -v -tags=relic main/api-service.go
+	go run -v -tags=relic cmd/api-service/main.go
 
 # Build API service
 .PHONY: build
 build:
-	go build -v -tags=relic -o /app main/api-service.go
+	go build -v -tags=relic -o /app cmd/api-service/main.go
 
 # Test API service
 .PHONY: test
@@ -22,7 +22,7 @@ test:
 # Run API service in Docker
 .PHONY: docker-run
 docker-run: docker-build
-	docker run -t -i --rm onflow.org/api-service go run -v -tags=relic main/api-service.go
+	docker run -t -i --rm onflow.org/api-service go run -v -tags=relic cmd/api-service/main.go
 
 # Run build/test/run debug console
 .PHONY: debug
