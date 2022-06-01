@@ -3,7 +3,6 @@ package builder
 import (
 	"github.com/onflow/api-service/m/v2/cmd/engine"
 	"github.com/onflow/api-service/m/v2/cmd/service"
-	"time"
 )
 
 type FlowAPIServiceCmd struct {
@@ -33,11 +32,13 @@ func (fsb *FlowAPIServiceBuilder) Build() (*FlowAPIServiceCmd, error) {
 	}, nil
 }
 
-func (fsb *FlowAPIServiceCmd) Run() {
-	// run all modules
-	fsb.RpcEngine.Ready()
-	fsb.ServiceConfig.Logger.Info().Msg("Flow API Service Ready")
-	time.Sleep(100 * time.Second)
+func (fsb *FlowAPIServiceCmd) Run() error {
+	// start all components
+	err := fsb.ServiceConfig.Start()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewFlowAPIServiceBuilder() *FlowAPIServiceBuilder {

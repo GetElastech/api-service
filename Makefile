@@ -22,7 +22,7 @@ test:
 # Run API service in Docker
 .PHONY: docker-run
 docker-run: docker-build
-	docker run -t -i --rm onflow.org/api-service go run -v -tags=relic cmd/api-service/main.go
+	docker run -d --name flow_api_service --rm -p 4900:9000 onflow.org/api-service go run -v -tags=relic cmd/api-service/main.go
 
 # Run build/test/run debug console
 .PHONY: debug

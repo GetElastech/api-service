@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/onflow/flow-go/model/encodable"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +23,7 @@ import (
 func NewFlowAPIService(accessNodeAddressAndPort flow.IdentityList, timeout time.Duration) (*FlowAPIService, error) {
 	accessClients := make([]access.AccessAPIClient, accessNodeAddressAndPort.Count())
 	for i, identity := range accessNodeAddressAndPort {
+		identity.NetworkPubKey = nil
 		if identity.NetworkPubKey == nil {
 			clientRPCConnection, err := grpc.Dial(
 				identity.Address,
@@ -72,6 +72,14 @@ func BootstrapIdentities(addresses []string, keys []string) (flow.IdentityList, 
 	for i, address := range addresses {
 		key := keys[i]
 
+		// create the identity of the peer by setting only the relevant fields
+		ids[i] = &flow.Identity{
+			NodeID:        flow.ZeroID, // the NodeID is the hash of the staking key and for the public network it does not apply
+			Address:       address,
+			Role:          flow.RoleAccess, // the upstream node has to be an access node
+			NetworkPubKey: nil,
+		}
+
 		// json unmarshaller needs a quotes before and after the string
 		// the pflags.StringSliceVar does not retain quotes for the command line arg even if escaped with \"
 		// hence this additional check to ensure the key is indeed quoted
@@ -79,19 +87,7 @@ func BootstrapIdentities(addresses []string, keys []string) (flow.IdentityList, 
 			key = fmt.Sprintf("\"%s\"", key)
 		}
 		// networking public key
-		var networkKey encodable.NetworkPubKey
-		err := json.Unmarshal([]byte(key), &networkKey)
-		if err != nil {
-			return nil, err
-		}
-
-		// create the identity of the peer by setting only the relevant fields
-		ids[i] = &flow.Identity{
-			NodeID:        flow.ZeroID, // the NodeID is the hash of the staking key and for the public network it does not apply
-			Address:       address,
-			Role:          flow.RoleAccess, // the upstream node has to be an access node
-			NetworkPubKey: networkKey,
-		}
+		_ = json.Unmarshal([]byte(key), &ids[i].NetworkPubKey)
 	}
 	return ids, nil
 }
@@ -123,35 +119,75 @@ func (h *FlowAPIService) client() (access.AccessAPIClient, error) {
 }
 
 func (h *FlowAPIService) Ping(context context.Context, req *access.PingRequest) (*access.PingResponse, error) {
-	return h.AccessAPIServer.Ping(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.Ping(context, req)
 }
 
 func (h *FlowAPIService) GetLatestBlockHeader(context context.Context, req *access.GetLatestBlockHeaderRequest) (*access.BlockHeaderResponse, error) {
-	return h.AccessAPIServer.GetLatestBlockHeader(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetLatestBlockHeader(context, req)
 }
 
 func (h *FlowAPIService) GetBlockHeaderByID(context context.Context, req *access.GetBlockHeaderByIDRequest) (*access.BlockHeaderResponse, error) {
-	return h.AccessAPIServer.GetBlockHeaderByID(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockHeaderByID(context, req)
 }
 
 func (h *FlowAPIService) GetBlockHeaderByHeight(context context.Context, req *access.GetBlockHeaderByHeightRequest) (*access.BlockHeaderResponse, error) {
-	return h.AccessAPIServer.GetBlockHeaderByHeight(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockHeaderByHeight(context, req)
 }
 
 func (h *FlowAPIService) GetLatestBlock(context context.Context, req *access.GetLatestBlockRequest) (*access.BlockResponse, error) {
-	return h.AccessAPIServer.GetLatestBlock(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetLatestBlock(context, req)
 }
 
 func (h *FlowAPIService) GetBlockByID(context context.Context, req *access.GetBlockByIDRequest) (*access.BlockResponse, error) {
-	return h.AccessAPIServer.GetBlockByID(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockByID(context, req)
 }
 
 func (h *FlowAPIService) GetBlockByHeight(context context.Context, req *access.GetBlockByHeightRequest) (*access.BlockResponse, error) {
-	return h.AccessAPIServer.GetBlockByHeight(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockByHeight(context, req)
 }
 
 func (h *FlowAPIService) GetCollectionByID(context context.Context, req *access.GetCollectionByIDRequest) (*access.CollectionResponse, error) {
-	return h.AccessAPIServer.GetCollectionByID(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetCollectionByID(context, req)
 }
 
 func (h *FlowAPIService) SendTransaction(context context.Context, req *access.SendTransactionRequest) (*access.SendTransactionResponse, error) {
@@ -263,11 +299,21 @@ func (h *FlowAPIService) GetEventsForBlockIDs(context context.Context, req *acce
 }
 
 func (h *FlowAPIService) GetNetworkParameters(context context.Context, req *access.GetNetworkParametersRequest) (*access.GetNetworkParametersResponse, error) {
-	return h.AccessAPIServer.GetNetworkParameters(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetNetworkParameters(context, req)
 }
 
 func (h *FlowAPIService) GetLatestProtocolStateSnapshot(context context.Context, req *access.GetLatestProtocolStateSnapshotRequest) (*access.ProtocolStateSnapshotResponse, error) {
-	return h.AccessAPIServer.GetLatestProtocolStateSnapshot(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetLatestProtocolStateSnapshot(context, req)
 }
 
 func (h *FlowAPIService) GetExecutionResultForBlockID(context context.Context, req *access.GetExecutionResultForBlockIDRequest) (*access.ExecutionResultForBlockIDResponse, error) {

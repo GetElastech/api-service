@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/onflow/flow-go/module/irrecoverable"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 	"os"
@@ -16,20 +15,36 @@ func NewFlowServiceBuilder(name string) *FlowServiceBuilder {
 	}
 }
 
-type ServiceConfig struct {
-	Name   string
-	Logger zerolog.Logger
-	flags  pflag.FlagSet
-}
-
 type FlowService interface {
 	Run()
+}
+
+type ServiceConfig struct {
+	Name       string
+	Logger     zerolog.Logger
+	Flags      pflag.FlagSet
+	Components []namedModuleFunc
 }
 
 type FlowServiceBuilder struct {
 	FlowService
 	ServiceConfig ServiceConfig
 	modules       []namedModuleFunc
+}
+
+func (fsb *FlowServiceBuilder) ParseAndPrintFlags() error {
+	// parse configuration parameters
+	pflag.Parse()
+
+	// print all flags
+	log := fsb.ServiceConfig.Logger.Info()
+
+	pflag.VisitAll(func(flag *pflag.Flag) {
+		log = log.Str(flag.Name, flag.Value.String())
+	})
+
+	fsb.ServiceConfig.Logger.Info().Msg("flags loaded")
+	return nil
 }
 
 func (fsb *FlowServiceBuilder) Build() (*FlowService, error) {
@@ -43,17 +58,11 @@ func (fsb *FlowServiceBuilder) Build() (*FlowService, error) {
 	return &fsb.FlowService, nil
 }
 
-func (fsb *FlowServiceBuilder) Start(irrecoverable.SignalerContext) {
-}
-
-func (receiver *FlowServiceBuilder) Run() {
-}
-
-// ExtraFlags enables binding additional flags beyond those defined in BaseConfig.
-func (fnb *FlowServiceBuilder) ExtraFlags(f func(*pflag.FlagSet)) *FlowServiceBuilder {
-	f(&fnb.ServiceConfig.flags)
-	return fnb
-}
+//// ExtraFlags enables binding additional Flags beyond those defined in BaseConfig.
+//func (fnb *FlowServiceBuilder) ExtraFlags(f func(*pflag.FlagSet)) *FlowServiceBuilder {
+//	f(&fnb.ServiceConfig.Flags)
+//	return fnb
+//}
 
 type BuilderFunc func(serviceConfig *ServiceConfig) error
 
@@ -71,25 +80,25 @@ func (fsb *FlowServiceBuilder) Module(name string, f BuilderFunc) *FlowServiceBu
 	return fsb
 }
 
-func (fnb *FlowServiceBuilder) onStart() error {
+// Component adds a new component to the node that conforms to the ReadyDoneAware
+// interface, and throws a Fatal() when an irrecoverable error is encountered.
+func (fsb *FlowServiceBuilder) Component(name string, f BuilderFunc) *FlowServiceBuilder {
+	fsb.ServiceConfig.Components = append(fsb.ServiceConfig.Components, namedModuleFunc{
+		fn:   f,
+		name: name,
+	})
+	return fsb
+}
 
-	// seed random generator
-	//rand.Seed(time.Now().UnixNano())
-	//
-	//// init nodeinfo by reading the private bootstrap file if not already set
-	//if fnb.NodeID == flow.ZeroID {
-	//	fnb.initNodeInfo()
-	//}
-
-	// run all modules
-	//for _, f := range fnb.*fnb.FlowNodeBuilder.modules {
-	//	if err := fnb.handleModule(f); err != nil {
-	//		return err
-	//	}
-	//}
-	//
-	//// run all components
-	//return fnb.handleComponents()
+func (fsc *ServiceConfig) Start() error {
+	// start all components
+	for _, f := range fsc.Components {
+		if err := f.fn(fsc); err != nil {
+			fsc.Logger.Error().Str("module", f.name).Err(err)
+			return err
+		}
+		fsc.Logger.Info().Str("module", f.name).Msg("Service Component Started")
+	}
 
 	return nil
 }
