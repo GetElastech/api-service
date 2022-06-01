@@ -38,7 +38,7 @@ func (fsb *FlowServiceBuilder) Build() (*FlowService, error) {
 		if err := f.fn(&fsb.ServiceConfig); err != nil {
 			fsb.ServiceConfig.Logger.Err(err)
 		}
-		fsb.ServiceConfig.Logger.Info().Str("module", f.name).Msg("module started")
+		fsb.ServiceConfig.Logger.Info().Str("module", f.name).Msg("service module started")
 	}
 	return &fsb.FlowService, nil
 }

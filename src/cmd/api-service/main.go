@@ -17,7 +17,6 @@ func main() {
 		upstreamNodeAddresses  []string
 		upstreamNodePublicKeys []string
 		api                    access.AccessAPIServer
-		rpc                    *engine.RPC
 	)
 
 	nodeBuilder := builder.NewFlowAPIServiceBuilder()
@@ -37,21 +36,26 @@ func main() {
 		Module("API Service", func(node *service.ServiceConfig) error {
 			ids, err := proxy.BootstrapIdentities(upstreamNodeAddresses, upstreamNodePublicKeys)
 			if err != nil {
+				nodeBuilder.ServiceConfig.Logger.Info().Err(err)
 				return err
 			}
 			api, err = proxy.NewFlowAPIService(ids, apiTimeout)
 			if err != nil {
+				nodeBuilder.ServiceConfig.Logger.Info().Err(err)
 				return err
 			}
-			return err
+			nodeBuilder.ServiceConfig.Logger.Info().Msg("API Service started")
+			return nil
 		}).
 		Module("RPC engine", func(node *service.ServiceConfig) error {
 			rpcEng, err := engine.New(node.Logger, rpcConf, api)
 			if err != nil {
+				nodeBuilder.ServiceConfig.Logger.Info().Err(err)
 				return err
 			}
-			rpc = rpcEng
-			return err
+			nodeBuilder.RpcEngine = rpcEng
+			nodeBuilder.ServiceConfig.Logger.Info().Str("module", node.Name).Msg("RPC engine started")
+			return nil
 		})
 
 	node, err := nodeBuilder.Build()

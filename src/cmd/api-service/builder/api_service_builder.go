@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"github.com/onflow/api-service/m/v2/cmd/engine"
 	"github.com/onflow/api-service/m/v2/cmd/service"
 	"time"
 )
@@ -8,10 +9,12 @@ import (
 type FlowAPIServiceCmd struct {
 	service.FlowService
 	ServiceConfig service.ServiceConfig
+	RpcEngine     *engine.RPC
 }
 
 type FlowAPIServiceBuilder struct {
 	*service.FlowServiceBuilder
+	RpcEngine *engine.RPC
 }
 
 func (fsb *FlowAPIServiceBuilder) Initialize() error {
@@ -26,10 +29,14 @@ func (fsb *FlowAPIServiceBuilder) Build() (*FlowAPIServiceCmd, error) {
 	return &FlowAPIServiceCmd{
 		FlowService:   *fs,
 		ServiceConfig: fsb.ServiceConfig,
+		RpcEngine:     fsb.RpcEngine,
 	}, nil
 }
 
 func (fsb *FlowAPIServiceCmd) Run() {
+	// run all modules
+	fsb.RpcEngine.Ready()
+	fsb.ServiceConfig.Logger.Info().Msg("Flow API Service Ready")
 	time.Sleep(100 * time.Second)
 }
 
