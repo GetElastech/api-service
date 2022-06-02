@@ -3,6 +3,9 @@ package builder
 import (
 	"github.com/onflow/api-service/m/v2/cmd/engine"
 	"github.com/onflow/api-service/m/v2/cmd/service"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type FlowAPIServiceCmd struct {
@@ -33,11 +36,21 @@ func (fsb *FlowAPIServiceBuilder) Build() (*FlowAPIServiceCmd, error) {
 }
 
 func (fsb *FlowAPIServiceCmd) Run() error {
-	// start all components
+	// 1: Start up
+	// Start all the components
 	err := fsb.ServiceConfig.Start()
 	if err != nil {
 		return err
 	}
+
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT)
+	defer signal.Stop(sigint)
+	<-sigint
+
+	fsb.ServiceConfig.Logger.Info().Msg("Flow API Service Done")
+	<-fsb.RpcEngine.Done()
+
 	return nil
 }
 

@@ -18,6 +18,7 @@ func main() {
 		upstreamNodeAddresses  []string
 		upstreamNodePublicKeys []string
 		api                    access.AccessAPIServer
+		ready                  <-chan struct{}
 	)
 
 	nodeBuilder := builder.NewFlowAPIServiceBuilder()
@@ -72,7 +73,8 @@ func main() {
 		}).
 		Component("Start listening", func(node *service.ServiceConfig) error {
 			// run all modules
-			nodeBuilder.RpcEngine.Ready()
+			ready = nodeBuilder.RpcEngine.Ready()
+			<-ready
 			nodeBuilder.ServiceConfig.Logger.Info().Msg("Flow API Service Ready")
 			return nil
 		})
@@ -85,7 +87,4 @@ func main() {
 	if err != nil {
 		nodeBuilder.ServiceConfig.Logger.Err(err)
 	}
-	time.Sleep(100 * time.Second)
-	node.RpcEngine.Done()
-	node.ServiceConfig.Logger.Info().Msg("Flow API Service Done")
 }
