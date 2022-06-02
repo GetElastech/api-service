@@ -18,12 +18,11 @@ func main() {
 		upstreamNodeAddresses  []string
 		upstreamNodePublicKeys []string
 		api                    access.AccessAPIServer
-		ready                  <-chan struct{}
 	)
 
-	nodeBuilder := builder.NewFlowAPIServiceBuilder()
+	serviceBuilder := builder.NewFlowAPIServiceBuilder()
 
-	flags := &nodeBuilder.ServiceConfig.Flags
+	flags := &serviceBuilder.ServiceConfig.Flags
 	flags.StringVarP(&rpcConf.ListenAddr, "rpc-addr", "r", ":9000", "the address the GRPC server listens on")
 	flags.DurationVar(&apiTimeout, "flow-api-timeout", 3*time.Second, "tcp timeout for Flow API gRPC socket")
 	flags.StringSliceVar(&upstreamNodeAddresses, "upstream-node-addresses", []string{"127.0.0.1:3569"}, "the network addresses of the bootstrap access node if this is an observer e.g. access-001.mainnet.flow.org:9653,access-002.mainnet.flow.org:9653")
@@ -31,60 +30,59 @@ func main() {
 
 	err := flags.Parse(os.Args[1:])
 	if err != nil {
-		nodeBuilder.ServiceConfig.Logger.Fatal().Err(err)
+		serviceBuilder.ServiceConfig.Logger.Fatal().Err(err)
 	}
-	nodeBuilder.ServiceConfig.Logger.Info().
+	serviceBuilder.ServiceConfig.Logger.Info().
 		Str("upstream-node-addresses", fmt.Sprintf("%v", upstreamNodeAddresses)).
 		Str("upstream-node-public-keys", fmt.Sprintf("%v", upstreamNodePublicKeys))
 	// print all flags
-	nodeBuilder.ServiceConfig.Logger.Info().Str("upstream-node-addresses", fmt.Sprintf("%v", upstreamNodeAddresses)).Msg("flags loaded")
+	serviceBuilder.ServiceConfig.Logger.Info().Str("upstream-node-addresses", fmt.Sprintf("%v", upstreamNodeAddresses)).Msg("flags loaded")
 
-	if err := nodeBuilder.Initialize(); err != nil {
-		nodeBuilder.ServiceConfig.Logger.Fatal().Err(err).Send()
+	if err := serviceBuilder.Initialize(); err != nil {
+		serviceBuilder.ServiceConfig.Logger.Fatal().Err(err).Send()
 	}
 
-	nodeBuilder.
+	serviceBuilder.
 		Module("API Service", func(node *service.ServiceConfig) error {
 			ids, err := proxy.BootstrapIdentities(upstreamNodeAddresses, upstreamNodePublicKeys)
 			if err != nil {
-				nodeBuilder.ServiceConfig.Logger.Info().Err(err)
+				serviceBuilder.ServiceConfig.Logger.Info().Err(err)
 				return err
 			}
 			for _, id := range ids {
-				nodeBuilder.ServiceConfig.Logger.Info().Str("upstream", id.Address).Msg("API Service client")
+				serviceBuilder.ServiceConfig.Logger.Info().Str("upstream", id.Address).Msg("API Service client")
 			}
 			api, err = proxy.NewFlowAPIService(ids, apiTimeout)
 			if err != nil {
-				nodeBuilder.ServiceConfig.Logger.Info().Err(err)
+				serviceBuilder.ServiceConfig.Logger.Info().Err(err)
 				return err
 			}
-			nodeBuilder.ServiceConfig.Logger.Info().Str("cmd", fmt.Sprintf("%v", upstreamNodeAddresses)).Msg("API Service started")
+			serviceBuilder.ServiceConfig.Logger.Info().Str("cmd", fmt.Sprintf("%v", upstreamNodeAddresses)).Msg("API Service started")
 			return nil
 		}).
 		Module("RPC engine", func(node *service.ServiceConfig) error {
 			rpcEng, err := engine.New(node.Logger, rpcConf, api)
 			if err != nil {
-				nodeBuilder.ServiceConfig.Logger.Info().Err(err)
+				serviceBuilder.ServiceConfig.Logger.Info().Err(err)
 				return err
 			}
-			nodeBuilder.RpcEngine = rpcEng
-			nodeBuilder.ServiceConfig.Logger.Info().Str("module", node.Name).Msg("RPC engine started")
+			serviceBuilder.RpcEngine = rpcEng
+			serviceBuilder.ServiceConfig.Logger.Info().Str("module", node.Name).Msg("RPC engine started")
 			return nil
 		}).
 		Component("Start listening", func(node *service.ServiceConfig) error {
 			// run all modules
-			ready = nodeBuilder.RpcEngine.Ready()
-			<-ready
-			nodeBuilder.ServiceConfig.Logger.Info().Msg("Flow API Service Ready")
+			<-serviceBuilder.RpcEngine.Ready()
+			serviceBuilder.ServiceConfig.Logger.Info().Msg("Flow API Service Ready")
 			return nil
 		})
 
-	node, err := nodeBuilder.Build()
+	service, err := serviceBuilder.Build()
 	if err != nil {
-		nodeBuilder.ServiceConfig.Logger.Err(err)
+		serviceBuilder.ServiceConfig.Logger.Err(err)
 	}
-	err = node.Run()
+	err = service.Run()
 	if err != nil {
-		nodeBuilder.ServiceConfig.Logger.Err(err)
+		serviceBuilder.ServiceConfig.Logger.Err(err)
 	}
 }
