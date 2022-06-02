@@ -72,7 +72,7 @@ docker-test-localnet: docker-run-localnet
 	# To follow: docker logs -f localnet_flow_api_service
 	docker logs localnet_flow_api_service
 	# Check latest block: flow -f ./flow-localnet.json -n api blocks get latest
-	docker run -t -i --rm --link localnet_flow_api_service:flow_api  --network localnet_default \
+	docker run --rm --link localnet_flow_api_service:flow_api  --network localnet_default \
 		onflow.org/flow-e2e-test
 	docker stop localnet_flow_api_service
 
@@ -85,6 +85,3 @@ docker-run-localnet: docker-build
 	bash -c 'cd upstream && make install-tools'
 	bash -c 'cd upstream/integration/localnet && make init && make start'
 
-.PHONY: docker-test-access
-docker-test-access: docker-run-localnet
-	docker run -t -i --rm --network host onflow.org/flow-e2e-test flow -f ./flow-localnet.json -n access blocks get latest

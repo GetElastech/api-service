@@ -58,6 +58,7 @@ FROM golang:1.17 as production-small
 
 RUN rm -rf /go
 RUN rm -rf /app
+RUN rm -rf /usr/local/go
 COPY --from=production /app/main /bin/main
 
 CMD ["/bin/main"]
@@ -86,6 +87,7 @@ FROM golang:1.17 as flow-cli
 
 RUN rm -rf /go
 RUN rm -rf /app
+RUN rm -rf /usr/local/go
 COPY --from=build-cli /flow-cli/main /bin/flow
 
 CMD ["/bin/bash"]
