@@ -30,8 +30,13 @@ docker-run-localnet: docker-build
 	docker run -d --name localnet_flow_api_service --rm -p 127.0.0.1:9500:9000 --network localnet_default \
 		--link access_1:access onflow.org/api-service go run -v -tags=relic cmd/api-service/main.go \
 		--upstream-node-addresses=access:9000 --upstream-node-public-keys=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --rpc-addr=:9000
-	# docker logs -f localnet_flow_api_service
-	# flow -f ./flow-localnet.json -n api blocks get latest
+	sleep 10
+	# To follow: docker logs -f localnet_flow_api_service
+	docker logs localnet_flow_api_service
+	# Check latest block: flow -f ./flow-localnet.json -n api blocks get latest
+	docker run -t -i --rm --link localnet_flow_api_service:flow_api  --network localnet_default \
+		onflow.org/flow-e2e-test
+	docker stop localnet_flow_api_service
 
 # Run build/test/run debug console
 .PHONY: debug
@@ -49,6 +54,8 @@ docker-test: docker-build-test
 docker-build:
 	docker build -t onflow.org/api-service --target production .
 	docker build -t onflow.org/api-service-small --target production-small .
+	docker build -t onflow.org/flow-cli --target flow-cli .
+	docker build -t onflow.org/flow-e2e-test --target flow-e2e-test .
 
 # Build intermediate build docker container
 .PHONY: docker-build-test

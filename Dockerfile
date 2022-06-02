@@ -61,3 +61,37 @@ RUN rm -rf /app
 COPY --from=production /app/main /bin/main
 
 CMD ["/bin/main"]
+
+FROM golang:1.17 as build-cli
+
+RUN git clone https://github.com/onflow/flow-cli.git /flow-cli
+WORKDIR /flow-cli
+RUN git checkout 6c240a76ec2bb5d5685afeb0898eed0ea1bd0059
+RUN VERSION=v0.34.0 \
+	go build \
+	-trimpath \
+	-ldflags \
+	"-X github.com/onflow/flow-cli/build.commit=6c240a76ec2bb5d5685afeb0898eed0ea1bd0059 -X github.com/onflow/flow-cli/build.semver=v0.34.0" \
+	./cmd/flow/main.go
+
+
+#	go build \
+#	-X github.com/onflow/flow-cli/build.commit=6c240a76ec2bb5d5685afeb0898eed0ea1bd0059 \
+#	-X github.com/onflow/flow-cli/build.semver=v0.34.0 \
+#	./cmd/flow/main.go
+
+RUN ./main version
+
+FROM golang:1.17 as flow-cli
+
+RUN rm -rf /go
+RUN rm -rf /app
+COPY --from=build-cli /flow-cli/main /bin/flow
+
+CMD ["/bin/bash"]
+
+FROM flow-cli as flow-e2e-test
+
+COPY ./flow-localnet.json /root/flow-localnet.json
+WORKDIR /root
+CMD flow -f /root/flow-localnet.json -n flow_api blocks get latest
