@@ -32,15 +32,11 @@ func main() {
 	if err != nil {
 		nodeBuilder.ServiceConfig.Logger.Fatal().Err(err)
 	}
+	nodeBuilder.ServiceConfig.Logger.Info().
+		Str("upstream-node-addresses", fmt.Sprintf("%v", upstreamNodeAddresses)).
+		Str("upstream-node-public-keys", fmt.Sprintf("%v", upstreamNodePublicKeys))
 	// print all flags
-	//log := nodeBuilder.ServiceConfig.Logger.Info()
-
-	//pflag.VisitAll(func(flag *pflag.Flag) {
-	//	log = log.Str(flag.Name, flag.Value.String())
-	//})
 	nodeBuilder.ServiceConfig.Logger.Info().Str("upstream-node-addresses", fmt.Sprintf("%v", upstreamNodeAddresses)).Msg("flags loaded")
-	//})
-	//_ = nodeBuilder.ParseAndPrintFlags()
 
 	if err := nodeBuilder.Initialize(); err != nil {
 		nodeBuilder.ServiceConfig.Logger.Fatal().Err(err).Send()
@@ -56,12 +52,12 @@ func main() {
 			for _, id := range ids {
 				nodeBuilder.ServiceConfig.Logger.Info().Str("upstream", id.Address).Msg("API Service client")
 			}
-			nodeBuilder.ServiceConfig.Logger.Info().Str("cmd", fmt.Sprintf("%v", upstreamNodeAddresses)).Msg("API Service started")
 			api, err = proxy.NewFlowAPIService(ids, apiTimeout)
 			if err != nil {
 				nodeBuilder.ServiceConfig.Logger.Info().Err(err)
 				return err
 			}
+			nodeBuilder.ServiceConfig.Logger.Info().Str("cmd", fmt.Sprintf("%v", upstreamNodeAddresses)).Msg("API Service started")
 			return nil
 		}).
 		Module("RPC engine", func(node *service.ServiceConfig) error {

@@ -24,6 +24,15 @@ test:
 docker-run: docker-build
 	docker run -d --name flow_api_service --rm -p 4900:9000 onflow.org/api-service go run -v -tags=relic cmd/api-service/main.go
 
+# Run API service attached to localnet in Docker
+.PHONY: docker-run-localnet
+docker-run-localnet: docker-build
+	docker run -d --name localnet_flow_api_service --rm -p 127.0.0.1:9500:9000 --network localnet_default \
+		--link access_1:access onflow.org/api-service go run -v -tags=relic cmd/api-service/main.go \
+		--upstream-node-addresses=access:9000 --upstream-node-public-keys=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --rpc-addr=:9000
+	# docker logs -f localnet_flow_api_service
+	# flow -f ./flow-localnet.json -n api blocks get latest
+
 # Run build/test/run debug console
 .PHONY: debug
 debug:

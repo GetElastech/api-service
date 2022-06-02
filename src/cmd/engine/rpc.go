@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/rs/zerolog"
@@ -36,6 +37,9 @@ type RPC struct {
 
 // New returns a new RPC engine.
 func New(log zerolog.Logger, config Config, proxy accessproto.AccessAPIServer) (*RPC, error) {
+	if proxy == nil {
+		return nil, fmt.Errorf("proxy not set")
+	}
 
 	log = log.With().Str("engine", "rpc").Logger()
 
