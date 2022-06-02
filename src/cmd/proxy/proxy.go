@@ -55,9 +55,9 @@ func NewFlowAPIService(accessNodeAddressAndPort flow.IdentityList, timeout time.
 	}
 
 	ret := &FlowAPIService{
-		upstream: accessClients,
+		upstream:   accessClients,
 		roundRobin: 0,
-		lock: sync.Mutex{},
+		lock:       sync.Mutex{},
 	}
 	return ret, nil
 }
