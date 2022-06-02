@@ -85,3 +85,6 @@ docker-run-localnet: docker-build
 	bash -c 'cd upstream && make install-tools'
 	bash -c 'cd upstream/integration/localnet && make init && make start'
 
+.PHONY: docker-test-access
+docker-test-access: docker-run-localnet
+	docker run -t -i --rm --network host onflow.org/flow-e2e-test flow -f ./flow-localnet.json -n access blocks get latest
