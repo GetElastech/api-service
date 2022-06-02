@@ -33,7 +33,7 @@ debug:
 # Run all tests
 .PHONY: docker-test
 docker-test: docker-build-test
-	docker run -t -i --rm onflow.org/api-service go test -v -tags=relic ./...
+	docker run --rm onflow.org/api-service go test -v -tags=relic ./...
 
 # Build production Docker container
 .PHONY: docker-build
