@@ -2,9 +2,6 @@ package proxy
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -62,38 +59,6 @@ func NewFlowAPIService(accessNodeAddressAndPort flow.IdentityList, timeout time.
 	return ret, nil
 }
 
-// BootstrapIdentities converts the bootstrap node addresses and keys to a Flow Identity list where
-// each Flow Identity is initialized with the passed address, the networking key
-// and the Node ID set to ZeroID, role set to Access, 0 stake and no staking key.
-func BootstrapIdentities(addresses []string, keys []string) (flow.IdentityList, error) {
-	if len(addresses) != len(keys) {
-		return nil, fmt.Errorf("number of addresses and keys provided for the boostrap nodes don't match")
-	}
-
-	ids := make([]*flow.Identity, len(addresses))
-	for i, address := range addresses {
-		key := keys[i]
-
-		// create the identity of the peer by setting only the relevant fields
-		ids[i] = &flow.Identity{
-			NodeID:        flow.ZeroID, // the NodeID is the hash of the staking key and for the public network it does not apply
-			Address:       address,
-			Role:          flow.RoleAccess, // the upstream node has to be an access node
-			NetworkPubKey: nil,
-		}
-
-		// json unmarshaller needs a quotes before and after the string
-		// the pflags.StringSliceVar does not retain quotes for the command line arg even if escaped with \"
-		// hence this additional check to ensure the key is indeed quoted
-		if !strings.HasPrefix(key, "\"") {
-			key = fmt.Sprintf("\"%s\"", key)
-		}
-		// networking public key
-		_ = json.Unmarshal([]byte(key), &ids[i].NetworkPubKey)
-	}
-	return ids, nil
-}
-
 type FlowAPIService struct {
 	access.AccessAPIServer
 	lock       sync.Mutex
@@ -105,6 +70,9 @@ func (h *FlowAPIService) SetLocalAPI(local access.AccessAPIServer) {
 	h.AccessAPIServer = local
 }
 
+// We choose the upstream clients to pass the requests to in a round-robin fashion
+// Each selection is locked. It may not be necessary but it is safer.
+// The array is initialized only at startup making it read-only thereafter.
 func (h *FlowAPIService) client() (access.AccessAPIClient, error) {
 	if h.upstream == nil || len(h.upstream) == 0 {
 		return nil, status.Errorf(codes.Unimplemented, "method not implemented")
