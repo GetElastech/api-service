@@ -2,10 +2,6 @@ package proxy
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"github.com/onflow/flow-go/model/encodable"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +20,7 @@ import (
 func NewFlowAPIService(accessNodeAddressAndPort flow.IdentityList, timeout time.Duration) (*FlowAPIService, error) {
 	accessClients := make([]access.AccessAPIClient, accessNodeAddressAndPort.Count())
 	for i, identity := range accessNodeAddressAndPort {
+		identity.NetworkPubKey = nil
 		if identity.NetworkPubKey == nil {
 			clientRPCConnection, err := grpc.Dial(
 				identity.Address,
@@ -54,46 +51,12 @@ func NewFlowAPIService(accessNodeAddressAndPort flow.IdentityList, timeout time.
 		}
 	}
 
-	ret := &FlowAPIService{}
-	ret.upstream = accessClients
-	ret.roundRobin = 0
+	ret := &FlowAPIService{
+		upstream:   accessClients,
+		roundRobin: 0,
+		lock:       sync.Mutex{},
+	}
 	return ret, nil
-}
-
-// BootstrapIdentities converts the bootstrap node addresses and keys to a Flow Identity list where
-// each Flow Identity is initialized with the passed address, the networking key
-// and the Node ID set to ZeroID, role set to Access, 0 stake and no staking key.
-func BootstrapIdentities(addresses []string, keys []string) (flow.IdentityList, error) {
-	if len(addresses) != len(keys) {
-		return nil, fmt.Errorf("number of addresses and keys provided for the boostrap nodes don't match")
-	}
-
-	ids := make([]*flow.Identity, len(addresses))
-	for i, address := range addresses {
-		key := keys[i]
-
-		// json unmarshaller needs a quotes before and after the string
-		// the pflags.StringSliceVar does not retain quotes for the command line arg even if escaped with \"
-		// hence this additional check to ensure the key is indeed quoted
-		if !strings.HasPrefix(key, "\"") {
-			key = fmt.Sprintf("\"%s\"", key)
-		}
-		// networking public key
-		var networkKey encodable.NetworkPubKey
-		err := json.Unmarshal([]byte(key), &networkKey)
-		if err != nil {
-			return nil, err
-		}
-
-		// create the identity of the peer by setting only the relevant fields
-		ids[i] = &flow.Identity{
-			NodeID:        flow.ZeroID, // the NodeID is the hash of the staking key and for the public network it does not apply
-			Address:       address,
-			Role:          flow.RoleAccess, // the upstream node has to be an access node
-			NetworkPubKey: networkKey,
-		}
-	}
-	return ids, nil
 }
 
 type FlowAPIService struct {
@@ -107,6 +70,9 @@ func (h *FlowAPIService) SetLocalAPI(local access.AccessAPIServer) {
 	h.AccessAPIServer = local
 }
 
+// We choose the upstream clients to pass the requests to in a round-robin fashion
+// Each selection is locked. It may not be necessary but it is safer.
+// The array is initialized only at startup making it read-only thereafter.
 func (h *FlowAPIService) client() (access.AccessAPIClient, error) {
 	if h.upstream == nil || len(h.upstream) == 0 {
 		return nil, status.Errorf(codes.Unimplemented, "method not implemented")
@@ -123,35 +89,75 @@ func (h *FlowAPIService) client() (access.AccessAPIClient, error) {
 }
 
 func (h *FlowAPIService) Ping(context context.Context, req *access.PingRequest) (*access.PingResponse, error) {
-	return h.AccessAPIServer.Ping(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.Ping(context, req)
 }
 
 func (h *FlowAPIService) GetLatestBlockHeader(context context.Context, req *access.GetLatestBlockHeaderRequest) (*access.BlockHeaderResponse, error) {
-	return h.AccessAPIServer.GetLatestBlockHeader(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetLatestBlockHeader(context, req)
 }
 
 func (h *FlowAPIService) GetBlockHeaderByID(context context.Context, req *access.GetBlockHeaderByIDRequest) (*access.BlockHeaderResponse, error) {
-	return h.AccessAPIServer.GetBlockHeaderByID(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockHeaderByID(context, req)
 }
 
 func (h *FlowAPIService) GetBlockHeaderByHeight(context context.Context, req *access.GetBlockHeaderByHeightRequest) (*access.BlockHeaderResponse, error) {
-	return h.AccessAPIServer.GetBlockHeaderByHeight(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockHeaderByHeight(context, req)
 }
 
 func (h *FlowAPIService) GetLatestBlock(context context.Context, req *access.GetLatestBlockRequest) (*access.BlockResponse, error) {
-	return h.AccessAPIServer.GetLatestBlock(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetLatestBlock(context, req)
 }
 
 func (h *FlowAPIService) GetBlockByID(context context.Context, req *access.GetBlockByIDRequest) (*access.BlockResponse, error) {
-	return h.AccessAPIServer.GetBlockByID(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockByID(context, req)
 }
 
 func (h *FlowAPIService) GetBlockByHeight(context context.Context, req *access.GetBlockByHeightRequest) (*access.BlockResponse, error) {
-	return h.AccessAPIServer.GetBlockByHeight(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetBlockByHeight(context, req)
 }
 
 func (h *FlowAPIService) GetCollectionByID(context context.Context, req *access.GetCollectionByIDRequest) (*access.CollectionResponse, error) {
-	return h.AccessAPIServer.GetCollectionByID(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetCollectionByID(context, req)
 }
 
 func (h *FlowAPIService) SendTransaction(context context.Context, req *access.SendTransactionRequest) (*access.SendTransactionResponse, error) {
@@ -263,11 +269,21 @@ func (h *FlowAPIService) GetEventsForBlockIDs(context context.Context, req *acce
 }
 
 func (h *FlowAPIService) GetNetworkParameters(context context.Context, req *access.GetNetworkParametersRequest) (*access.GetNetworkParametersResponse, error) {
-	return h.AccessAPIServer.GetNetworkParameters(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetNetworkParameters(context, req)
 }
 
 func (h *FlowAPIService) GetLatestProtocolStateSnapshot(context context.Context, req *access.GetLatestProtocolStateSnapshotRequest) (*access.ProtocolStateSnapshotResponse, error) {
-	return h.AccessAPIServer.GetLatestProtocolStateSnapshot(context, req)
+	// This is a passthrough request
+	upstream, err := h.client()
+	if err != nil {
+		return nil, err
+	}
+	return upstream.GetLatestProtocolStateSnapshot(context, req)
 }
 
 func (h *FlowAPIService) GetExecutionResultForBlockID(context context.Context, req *access.GetExecutionResultForBlockIDRequest) (*access.ExecutionResultForBlockIDResponse, error) {
