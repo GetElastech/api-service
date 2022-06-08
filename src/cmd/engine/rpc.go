@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/onflow/flow-go/engine"
-	"github.com/onflow/flow-go/module"
 	"github.com/onflow/flow-go/network"
 	jsoncodec "github.com/onflow/flow-go/network/codec/json"
 	"github.com/onflow/flow-go/utils/grpcutils"
@@ -22,16 +21,14 @@ type Config struct {
 }
 
 // RPC implements a gRPC server for the API service node
+// The RPC proxy reads from the channel and forwards requests to the gRPC clients
 type RPC struct {
 	unit   *engine.Unit
 	log    zerolog.Logger
 	server *grpc.Server // the gRPC server
 	config Config
-	me     module.Local
 	codec  network.Codec
 
-	//conduits map[network.Channel]network.Conduit
-	// The proxy reads from the channel and returns it as GRPC stream to the client
 	proxy accessproto.AccessAPIServer
 }
 
@@ -60,73 +57,10 @@ func New(log zerolog.Logger, config Config, proxy accessproto.AccessAPIServer) (
 		codec:  codec,
 	}
 
-	//conduitMap, err := registerConduits(net, state, eng)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to initialize RPC: %w", err)
-	//}
-	//eng.conduits = conduitMap
-
-	eng.proxy = proxy
 	accessproto.RegisterAccessAPIServer(eng.server, proxy)
 
 	return eng, nil
 }
-
-//// registerConduits registers for ALL channels and returns a map of engine id to conduit
-//func registerConduits(net network.Network, state protocol.State, eng network.Engine) (map[network.Channel]network.Conduit, error) {
-//
-//	// create a list of all channels that don't change over time
-//	channels := network.ChannelList{
-//		engine.ConsensusCommittee,
-//		engine.SyncCommittee,
-//		engine.SyncExecution,
-//		engine.PushTransactions,
-//		engine.PushGuarantees,
-//		engine.PushBlocks,
-//		engine.PushReceipts,
-//		engine.PushApprovals,
-//		engine.RequestCollections,
-//		engine.RequestChunks,
-//	}
-//
-//	// add channels that are dependent on protocol state and change over time
-//	// TODO need to update to register dynamic channels that are created on later epoch transitions
-//	epoch := state.Final().Epochs().Current()
-//
-//	clusters, err := epoch.Clustering()
-//	if err != nil {
-//		return nil, fmt.Errorf("could not get clusters: %w", err)
-//	}
-//
-//	for i := range clusters {
-//		cluster, err := epoch.Cluster(uint(i))
-//		if err != nil {
-//			return nil, fmt.Errorf("could not get cluster: %w", err)
-//		}
-//		clusterID := cluster.RootBlock().Header.ChainID
-//
-//		// add the dynamic channels for the cluster
-//		channels = append(
-//			channels,
-//			engine.ChannelConsensusCluster(clusterID),
-//			engine.ChannelSyncCluster(clusterID),
-//		)
-//	}
-//
-//	conduitMap := make(map[network.Channel]network.Conduit, len(channels))
-//
-//	// Register for ALL channels here and return a map of conduits
-//	for _, e := range channels {
-//		c, err := net.Register(e, eng)
-//		if err != nil {
-//			return nil, fmt.Errorf("could not register collection provider engine: %w", err)
-//		}
-//		conduitMap[e] = c
-//	}
-//
-//	return conduitMap, nil
-//
-//}
 
 // Ready returns a ready channel that is closed once the engine has fully
 // started. The RPC engine is ready when the gRPC server has successfully
