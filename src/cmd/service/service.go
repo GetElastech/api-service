@@ -6,9 +6,6 @@ import (
 	"os"
 )
 
-// NewFlowServiceBuilder implements a new flow service that can have two items.
-// Modules build dependencies.
-// Components run features and wait until they finish. This is usually done at SIGINT.
 func NewFlowServiceBuilder(name string) *FlowServiceBuilder {
 	return &FlowServiceBuilder{
 		ServiceConfig: ServiceConfig{
@@ -22,13 +19,6 @@ type FlowService interface {
 	Run()
 }
 
-type BuilderFunc func(serviceConfig *ServiceConfig) error
-
-type namedModuleFunc struct {
-	fn   BuilderFunc
-	name string
-}
-
 type ServiceConfig struct {
 	Name       string
 	Logger     zerolog.Logger
@@ -39,7 +29,7 @@ type ServiceConfig struct {
 type FlowServiceBuilder struct {
 	FlowService
 	ServiceConfig ServiceConfig
-	modules       []namedModuleFunc // Modules are dependencies built at startup
+	modules       []namedModuleFunc
 }
 
 func (fsb *FlowServiceBuilder) ParseAndPrintFlags() error {
@@ -62,11 +52,23 @@ func (fsb *FlowServiceBuilder) Build() (*FlowService, error) {
 	for _, f := range fsb.modules {
 		if err := f.fn(&fsb.ServiceConfig); err != nil {
 			fsb.ServiceConfig.Logger.Err(err)
-			return nil, err
 		}
 		fsb.ServiceConfig.Logger.Info().Str("module", f.name).Msg("service module started")
 	}
 	return &fsb.FlowService, nil
+}
+
+//// ExtraFlags enables binding additional Flags beyond those defined in BaseConfig.
+//func (fnb *FlowServiceBuilder) ExtraFlags(f func(*pflag.FlagSet)) *FlowServiceBuilder {
+//	f(&fnb.ServiceConfig.Flags)
+//	return fnb
+//}
+
+type BuilderFunc func(serviceConfig *ServiceConfig) error
+
+type namedModuleFunc struct {
+	fn   BuilderFunc
+	name string
 }
 
 // Module enables setting up dependencies of the engine with the builder context.
@@ -92,10 +94,10 @@ func (fsc *ServiceConfig) Start() error {
 	// start all components
 	for _, f := range fsc.Components {
 		if err := f.fn(fsc); err != nil {
-			fsc.Logger.Error().Str("component", f.name).Err(err)
+			fsc.Logger.Error().Str("module", f.name).Err(err)
 			return err
 		}
-		fsc.Logger.Info().Str("component", f.name).Msg("Service Component Started")
+		fsc.Logger.Info().Str("module", f.name).Msg("Service Component Started")
 	}
 
 	return nil
