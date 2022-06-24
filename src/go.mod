@@ -10,7 +10,7 @@ require (
 	github.com/onflow/cadence v0.21.3-0.20220513161637-08b93d4bb7b9
 	github.com/onflow/flow-go v0.26.0
 	github.com/onflow/flow/protobuf/go/flow v0.2.5
-	github.com/optakt/flow-dps v1.4.8
+	github.com/optakt/flow-dps v1.3.2
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/grpc v1.44.0
