@@ -29,7 +29,8 @@ import (
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/tags"
-	dpsclient "github.com/onflow/api-service/m/v2/cmd/flow-dps"
+
+	//dpsclient "github.com/onflow/api-service/m/v2/cmd/flow-dps"
 	accessApi "github.com/optakt/dps-access-api/api"
 	dpsApi "github.com/optakt/flow-dps/api/dps"
 	"github.com/spf13/pflag"
@@ -102,7 +103,7 @@ func NewFlowAPIService(protocolNodeAddressAndPort flow.IdentityList, executorNod
 		}
 	}
 
-	dpsClient := dpsclient.Server{}
+	//dpsClient := dpsclient.Server{}
 
 	// Logger initialization.
 	zerolog.TimestampFunc = func() time.Time { return time.Now().UTC() }
