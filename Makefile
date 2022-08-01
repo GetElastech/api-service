@@ -52,10 +52,10 @@ docker-build:
 docker-build-test:
 	docker build -t onflow.org/api-service --target build-env .
 
-# Clean all
-.PHONY: docker-clean
-docker-clean:
-	docker system prune -a
+# Clean all containers
+.PHONY: clean
+clean:
+	docker system prune -a -f
 
 # Run API service attached to localnet in Docker
 .PHONY: docker-test-e2e

@@ -38,6 +38,7 @@ type FlowAPIServiceBuilder struct {
 	FlowDpsNodeAddresses    []string
 	FlowDpsNodePublicKeys   []string
 	FlowDpsMaxCacheSize     uint64
+	FlosDpsFlagLevel        string
 	Api                     access.AccessAPIServer
 	RpcEngine               *engine.RPC
 }
@@ -54,6 +55,7 @@ func (fsb *FlowAPIServiceBuilder) Initialize() error {
 	flags.StringSliceVar(&fsb.FlowDpsNodeAddresses, "flow-dps-node-addresses", []string{}, "the network addresses of the bootstrap flow-dps nodes")
 	flags.StringSliceVar(&fsb.FlowDpsNodePublicKeys, "flow-dps-publish-keys", []string{}, "the networking public key of the bootstrap access nodes (in the same order as the bootstrap node addresses) e.g. \"d57a5e9c5.....\",\"44ded42d....\"")
 	flags.Uint64Var(&fsb.FlowDpsMaxCacheSize, "cache-size", 1_000_000_000, "maximum cache size for register reads in flow-dps in bytes")
+	flags.StringVarP(&fsb.FlosDpsFlagLevel, "level", "l", "info", "log output level")
 
 	// This one just prints the flags
 	err := fsb.FlowServiceBuilder.ParseAndPrintFlags()
