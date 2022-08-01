@@ -226,7 +226,7 @@ func (h *FlowAPIService) Ping(context context.Context, req *access.PingRequest) 
 
 func (h *FlowAPIService) GetLatestBlockHeader(context context.Context, req *access.GetLatestBlockHeaderRequest) (*access.BlockHeaderResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientDps()
+	upstream, err := h.clientProtocol()
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func (h *FlowAPIService) GetLatestBlockHeader(context context.Context, req *acce
 
 func (h *FlowAPIService) GetBlockHeaderByID(context context.Context, req *access.GetBlockHeaderByIDRequest) (*access.BlockHeaderResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientDps()
+	upstream, err := h.clientProtocol()
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +244,7 @@ func (h *FlowAPIService) GetBlockHeaderByID(context context.Context, req *access
 
 func (h *FlowAPIService) GetBlockHeaderByHeight(context context.Context, req *access.GetBlockHeaderByHeightRequest) (*access.BlockHeaderResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientDps()
+	upstream, err := h.clientProtocol()
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (h *FlowAPIService) GetBlockHeaderByHeight(context context.Context, req *ac
 
 func (h *FlowAPIService) GetLatestBlock(context context.Context, req *access.GetLatestBlockRequest) (*access.BlockResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientDps()
+	upstream, err := h.clientProtocol()
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +262,7 @@ func (h *FlowAPIService) GetLatestBlock(context context.Context, req *access.Get
 
 func (h *FlowAPIService) GetBlockByID(context context.Context, req *access.GetBlockByIDRequest) (*access.BlockResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientDps()
+	upstream, err := h.clientProtocol()
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func (h *FlowAPIService) GetBlockByID(context context.Context, req *access.GetBl
 
 func (h *FlowAPIService) GetBlockByHeight(context context.Context, req *access.GetBlockByHeightRequest) (*access.BlockResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientDps()
+	upstream, err := h.clientProtocol()
 	if err != nil {
 		return nil, err
 	}
