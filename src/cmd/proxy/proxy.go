@@ -19,10 +19,10 @@ import (
 	"github.com/onflow/flow-go/model/flow"
 	"github.com/onflow/flow-go/utils/grpcutils"
 
-	//dpsclient "github.com/onflow/api-service/m/v2/cmd/flow-dps"
+	flowDpsAccess "github.com/GetElastech/flow-dps-access/api"
 )
 
-func NewFlowAPIService(protocolNodeAddressAndPort flow.IdentityList, executorNodeAddressAndPort flow.IdentityList, timeout time.Duration) (*FlowAPIService, error) {
+func NewFlowAPIService(protocolNodeAddressAndPort flow.IdentityList, executorNodeAddressAndPort flow.IdentityList, flowDpsNodeAddressAndPort flow.IdentityList, flowDpsMaxCacheSize uint64, timeout time.Duration) (*FlowAPIService, error) {
 	protocolClients := make([]access.AccessAPIClient, protocolNodeAddressAndPort.Count())
 	for i, identity := range protocolNodeAddressAndPort {
 		identity.NetworkPubKey = nil
@@ -89,14 +89,38 @@ func NewFlowAPIService(protocolNodeAddressAndPort flow.IdentityList, executorNod
 		}
 	}
 
-	//flowDpsClient := upstream.Server{}
+	flowDpsClients := make([]flowDpsAccess.Server, flowDpsNodeAddressAndPort.Count())
+	for i, identity := range flowDpsNodeAddressAndPort {
+		identity.NetworkPubKey = nil
+		if identity.NetworkPubKey == nil {
+			flowDpsAccessServer, err := NewDpsAccessServer(identity.Address, flowDpsMaxCacheSize, false, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			flowDpsClients[i] = *flowDpsAccessServer
+
+		} else {
+			tlsConfig, err := grpcutils.DefaultClientTLSConfig(identity.NetworkPubKey)
+			if err != nil {
+				return nil, err
+			}
+
+			flowDpsAccessServer, err := NewDpsAccessServer(identity.Address, flowDpsMaxCacheSize, true, tlsConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			flowDpsClients[i] = *flowDpsAccessServer
+		}
+	}
 
 	ret := &FlowAPIService{
+		upstreamFlowDps:   flowDpsClients,
 		upstreamProtocol:  protocolClients,
 		upstreamExecution: executorClients,
 		roundRobin:        0,
 		lock:              sync.Mutex{},
-		//flowDps:    flowDpsClient,
 	}
 	return ret, nil
 }
@@ -135,6 +159,7 @@ func BootstrapIdentities(addresses []string, keys []string) (flow.IdentityList, 
 
 type FlowAPIService struct {
 	access.AccessAPIServer
+	upstreamFlowDps   []flowDpsAccess.Server
 	lock              sync.Mutex
 	roundRobin        int
 	upstreamProtocol  []access.AccessAPIClient
@@ -175,6 +200,21 @@ func (h *FlowAPIService) clientExecution() (access.AccessAPIClient, error) {
 	return ret, nil
 }
 
+func (h *FlowAPIService) clientDps() (flowDpsAccess.Server, error) {
+	if h.upstreamFlowDps == nil || len(h.upstreamFlowDps) == 0 {
+		return flowDpsAccess.Server{}, status.Errorf(codes.Unimplemented, "method not implemented")
+	}
+
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	h.roundRobin++
+	h.roundRobin = h.roundRobin % len(h.upstreamFlowDps)
+	ret := h.upstreamFlowDps[h.roundRobin]
+
+	return ret, nil
+}
+
 func (h *FlowAPIService) Ping(context context.Context, req *access.PingRequest) (*access.PingResponse, error) {
 	// This is a passthrough request
 	upstream, err := h.clientProtocol()
@@ -186,7 +226,7 @@ func (h *FlowAPIService) Ping(context context.Context, req *access.PingRequest) 
 
 func (h *FlowAPIService) GetLatestBlockHeader(context context.Context, req *access.GetLatestBlockHeaderRequest) (*access.BlockHeaderResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientProtocol()
+	upstream, err := h.clientDps()
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +235,7 @@ func (h *FlowAPIService) GetLatestBlockHeader(context context.Context, req *acce
 
 func (h *FlowAPIService) GetBlockHeaderByID(context context.Context, req *access.GetBlockHeaderByIDRequest) (*access.BlockHeaderResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientProtocol()
+	upstream, err := h.clientDps()
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +244,7 @@ func (h *FlowAPIService) GetBlockHeaderByID(context context.Context, req *access
 
 func (h *FlowAPIService) GetBlockHeaderByHeight(context context.Context, req *access.GetBlockHeaderByHeightRequest) (*access.BlockHeaderResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientProtocol()
+	upstream, err := h.clientDps()
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +253,7 @@ func (h *FlowAPIService) GetBlockHeaderByHeight(context context.Context, req *ac
 
 func (h *FlowAPIService) GetLatestBlock(context context.Context, req *access.GetLatestBlockRequest) (*access.BlockResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientProtocol()
+	upstream, err := h.clientDps()
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +262,7 @@ func (h *FlowAPIService) GetLatestBlock(context context.Context, req *access.Get
 
 func (h *FlowAPIService) GetBlockByID(context context.Context, req *access.GetBlockByIDRequest) (*access.BlockResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientProtocol()
+	upstream, err := h.clientDps()
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +271,7 @@ func (h *FlowAPIService) GetBlockByID(context context.Context, req *access.GetBl
 
 func (h *FlowAPIService) GetBlockByHeight(context context.Context, req *access.GetBlockByHeightRequest) (*access.BlockResponse, error) {
 	// This is a passthrough request
-	upstream, err := h.clientProtocol()
+	upstream, err := h.clientDps()
 	if err != nil {
 		return nil, err
 	}
