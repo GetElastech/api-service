@@ -43,7 +43,7 @@ docker-build-test:
 	docker build -t onflow.org/api-service-test --target build-env .
 
 # Run API service attached to Flow localnet network in Docker
-docker-test-e2e: docker-test-localnet-cleaned
+docker-test-e2e: clean docker-test-localnet-cleaned
 
 # Stop localnet Flow tests
 docker-test-localnet-cleaned: docker-test-localnet
